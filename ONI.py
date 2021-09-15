@@ -63,8 +63,8 @@ st.title('Ocean Nino Index')
 # get ONIts data
 ONIts = getONI()
 
-# plot using matplotlib
-st.pyplot(plotONI(ONIts))
+# # plot using matplotlib
+# st.pyplot(plotONI(ONIts))
 
 # plot using altair
 st.altair_chart(plotONI_alt(ONIts),use_container_width=True)
