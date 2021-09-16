@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# @st.cache
+@st.cache
 def getONI():
     import pandas as pd
     import numpy as np
@@ -24,6 +24,36 @@ def getONI():
             ONIts[str(y)+'-'+str(m)] = vONI
     ONIts.dropna(inplace=True)
     return ONIts
+
+def getAMO():
+    ''' Read full AMO series
+    Usage: AMOfull = get_AMOfull(local=None)
+
+    Parameters
+    ----------
+    local : str | None
+        option to use local stored file
+
+    Returns
+    -------
+    AMOseries : pd Series
+        AMO monthly time series
+    '''
+
+    # set AMO file
+    fnmAMO = 'https://www.esrl.noaa.gov/psd/data/correlation/amon.us.data'
+
+    # read into pandas series
+    vAMO = pd.read_csv(fnmAMO,sep='\s+',skiprows=1,skipfooter=3,header=None,engine='python')             .iloc[:,-12:].stack(dropna=True).values
+    AMOseries = pd.Series(vAMO,index=pd.date_range(start='1948-01-01', periods=len(vAMO),freq='MS'))
+    AMOseries.name = 'AMO'
+
+    # replace -99 with NaN
+    AMOseries.replace({-99.990:np.NaN},inplace=True)
+
+    AMOseries = AMOseries.dropna()
+
+    return AMOseries
 
 # def plotONI(ONIts):
 #     import matplotlib.pyplot as plt
@@ -57,14 +87,52 @@ def plotONI_alt(ONIts):
     )
     return c
 
-# add a title
-st.title('Ocean Nino Index')
+def plotAMO_alt(AMOts):
+    import altair as alt
+    dfAMO = AMOts.to_frame(name='AMO')
+    dfAMO['date'] = dfAMO.index
+    c = alt.Chart(dfAMO).mark_line().encode(
+        x='date:T',
+        y='AMO:Q',
+        tooltip=['date','AMO']
+    )
+    return c
 
-# get ONIts data
-ONIts = getONI()
+sOCI = st.sidebar.selectbox('Select OCI', ['ONI','AMO'])
 
-# # plot using matplotlib
-# st.pyplot(plotONI(ONIts))
+if sOCI == 'ONI':
+    # add a title
+    st.title('Ocean Nino Index')
+    st.write('[Data source](https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php)')
 
-# plot using altair
-st.altair_chart(plotONI_alt(ONIts),use_container_width=True)
+    # get ONIts data
+    ONIts = getONI()
+
+    # # plot using matplotlib
+    # st.pyplot(plotONI(ONIts))
+
+    # plot using altair
+    st.header('Full')
+    st.altair_chart(plotONI_alt(ONIts),use_container_width=True)
+
+    # since 2000
+    ONIts_2000 = ONIts.loc['2000-1-1':]
+    st.header('Since 2000')
+    st.altair_chart(plotONI_alt(ONIts_2000),use_container_width=True)
+
+elif sOCI == 'AMO':
+    # add a title
+    st.title('Atlantic Multi-decadal Oscillation Index')
+    st.write('[Data source](https://www.esrl.noaa.gov/psd/data/correlation/amon.us.data)')
+
+    # get AMOts data
+    AMOts = getAMO()
+
+    # plot using altair
+    st.header('Full')
+    st.altair_chart(plotAMO_alt(AMOts),use_container_width=True)
+
+    # since 2000
+    AMOts_2000 = AMOts.loc['2000-1-1':]
+    st.header('Since 2000')
+    st.altair_chart(plotAMO_alt(AMOts_2000),use_container_width=True)
