@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import altair as alt
 
 @st.cache
 def getONI():
@@ -23,7 +24,11 @@ def getONI():
             vONI = dfONI[m][str(y)]
             ONIts[str(y)+'-'+str(m)] = vONI
     ONIts.dropna(inplace=True)
-    return ONIts
+
+    dfONI = ONIts.to_frame(name='ONI')
+    dfONI['date'] = dfONI.index.to_timestamp()
+
+    return dfONI
 
 def getAMO():
     ''' Read full AMO series
@@ -53,86 +58,68 @@ def getAMO():
 
     AMOseries = AMOseries.dropna()
 
-    return AMOseries
-
-# def plotONI(ONIts):
-#     import matplotlib.pyplot as plt
-#     import matplotlib.cm as pltcm
-#     import seaborn as sns
-#     fig,ax = plt.subplots(figsize=(18,6))
-#     ONIts.plot(color='0.5',lw=0.5,ax=ax)
-#     ONIts[ONIts>0].plot(lw=0,ax=ax)
-#     ONIts[ONIts<0].plot(lw=0,ax=ax)
-#
-#     ONIts_gt0 = ONIts.copy()
-#     ONIts_gt0[ONIts_gt0<0] = 0
-#     ONIts_lt0 = ONIts.copy()
-#     ONIts_lt0[ONIts_gt0>0] = 0
-#     ax.fill_between(ONIts_gt0.index,ONIts_gt0.values,np.zeros(ONIts_gt0.size),color='r',alpha=0.7)
-#     ax.fill_between(ONIts_lt0.index,ONIts_lt0.values,np.zeros(ONIts_lt0.size),color='b',alpha=0.7)
-#
-#     ax.set_xlim(ONIts.index[0],ONIts.index[-1])
-#     ax.set_title('Ocean Nino Index')
-#     _=ax.text(ONIts.index[10],2.4,'Last observation: '+str(ONIts.index[-1].year)+'/'+str(ONIts.index[-1].month).zfill(2))
-#     return fig
-
-def plotONI_alt(ONIts):
-    import altair as alt
-    dfONI = ONIts.to_frame(name='ONI')
-    dfONI['date'] = dfONI.index.to_timestamp()
-    c = alt.Chart(dfONI).mark_line().encode(
-        x='date:T',
-        y='ONI:Q',
-        tooltip=['date','ONI']
-    )
-    return c
-
-def plotAMO_alt(AMOts):
-    import altair as alt
-    dfAMO = AMOts.to_frame(name='AMO')
+    dfAMO = AMOseries.to_frame(name='AMO')
     dfAMO['date'] = dfAMO.index
-    c = alt.Chart(dfAMO).mark_line().encode(
-        x='date:T',
-        y='AMO:Q',
-        tooltip=['date','AMO']
-    )
-    return c
+
+    return dfAMO
+
 
 sOCI = st.sidebar.selectbox('Select OCI', ['ONI','AMO'])
 
 if sOCI == 'ONI':
     # add a title
     st.title('Ocean Nino Index')
-    st.write('[Data source](https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php)')
 
     # get ONIts data
-    ONIts = getONI()
-
+    dfONI = getONI()
+    m_upd = dfONI['date'].iloc[-1].strftime('%b %Y')
+    st.write(f'Updated as of {m_upd}, [Data source](https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php)')
     # # plot using matplotlib
     # st.pyplot(plotONI(ONIts))
 
     # plot using altair
     st.header('Full')
-    st.altair_chart(plotONI_alt(ONIts),use_container_width=True)
+    c = alt.Chart(dfONI).mark_line().encode(
+        x='date:T',
+        y='ONI:Q',
+        tooltip=['date','ONI']
+    )
+    st.altair_chart(c,use_container_width=True)
 
     # since 2000
-    ONIts_2000 = ONIts.loc['2000-1-1':]
+    dfONI_2000 = dfONI.loc['2000-1-1':]
     st.header('Since 2000')
-    st.altair_chart(plotONI_alt(ONIts_2000),use_container_width=True)
+    c = alt.Chart(dfONI_2000).mark_line().encode(
+        x='date:T',
+        y='ONI:Q',
+        tooltip=['date','ONI']
+    )
+    st.altair_chart(c,use_container_width=True)
 
 elif sOCI == 'AMO':
     # add a title
     st.title('Atlantic Multi-decadal Oscillation Index')
-    st.write('[Data source](https://www.esrl.noaa.gov/psd/data/correlation/amon.us.data)')
 
     # get AMOts data
-    AMOts = getAMO()
+    dfAMO = getAMO()
+    m_upd = dfAMO['date'].iloc[-1].strftime('%b %Y')
+    st.write(f'Updated as of {m_upd}, [Data source](https://www.esrl.noaa.gov/psd/data/correlation/amon.us.data)')
 
     # plot using altair
     st.header('Full')
-    st.altair_chart(plotAMO_alt(AMOts),use_container_width=True)
+    c = alt.Chart(dfAMO).mark_line().encode(
+        x='date:T',
+        y='AMO:Q',
+        tooltip=['date','AMO']
+    )
+    st.altair_chart(c,use_container_width=True)
 
     # since 2000
-    AMOts_2000 = AMOts.loc['2000-1-1':]
+    dfAMO_2000 = dfAMO.loc['2000-1-1':]
     st.header('Since 2000')
-    st.altair_chart(plotAMO_alt(AMOts_2000),use_container_width=True)
+    c = alt.Chart(dfAMO_2000).mark_line().encode(
+        x='date:T',
+        y='AMO:Q',
+        tooltip=['date','AMO']
+    )
+    st.altair_chart(c,use_container_width=True)
