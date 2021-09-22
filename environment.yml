@@ -3,5 +3,5 @@ dependencies:
   - numpy
   - pandas
   - lxml
-  - ftplib
-  - zipfile
+  # - ftplib
+  # - zipfile
