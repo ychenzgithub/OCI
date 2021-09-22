@@ -30,6 +30,7 @@ def getONI():
 
     return dfONI
 
+@st.cache
 def getAMO():
     ''' Read full AMO series
     Usage: AMOfull = get_AMOfull(local=None)
@@ -49,7 +50,7 @@ def getAMO():
     fnmAMO = 'https://www.esrl.noaa.gov/psd/data/correlation/amon.us.data'
 
     # read into pandas series
-    vAMO = pd.read_csv(fnmAMO,sep='\s+',skiprows=1,skipfooter=3,header=None,engine='python')             .iloc[:,-12:].stack(dropna=True).values
+    vAMO = pd.read_csv(fnmAMO,sep='\s+',skiprows=1,skipfooter=3,header=None,engine='python').iloc[:,-12:].stack(dropna=True).values
     AMOseries = pd.Series(vAMO,index=pd.date_range(start='1948-01-01', periods=len(vAMO),freq='MS'))
     AMOseries.name = 'AMO'
 
@@ -63,8 +64,34 @@ def getAMO():
 
     return dfAMO
 
+@st.cache
+def getIOD():
+    A = 'IDCK000081.zip'
+    import ftplib
 
-sOCI = st.sidebar.selectbox('Select OCI', ['ONI','AMO'])
+    ftp = ftplib.FTP("ftp.bom.gov.au")
+    ftp.login("anonymous", "one@one.com")
+    ftp.cwd("/anon/gen/clim_data")
+
+
+    try:
+        ftp.retrbinary("RETR " + A ,open(A, 'wb').write)
+    except:
+        print("Error")
+
+    # unzip file
+    import zipfile
+    with zipfile.ZipFile("IDCK000081.zip","r") as zip_ref:
+        zip_ref.extractall("./")
+
+    # read data file
+    dfIOD = pd.read_csv('iod.csv')
+
+    dfIOD['date'] = pd.to_datetime(dfIOD['end_date'],format='%Y%m%d')
+
+    return dfIOD[['date','iod']].rename(columns={'iod':'IOD'})
+
+sOCI = st.sidebar.selectbox('Select OCI', ['ONI','AMO','DMI'])
 
 if sOCI == 'ONI':
     # add a title
@@ -121,5 +148,24 @@ elif sOCI == 'AMO':
         x='date:T',
         y='AMO:Q',
         tooltip=['date','AMO']
+    )
+    st.altair_chart(c,use_container_width=True)
+
+elif sOCI == 'DMI':
+    # add a title
+    st.title('Dipole Mode Index')
+
+    st.write(f'[Data source](https://stateoftheocean.osmc.noaa.gov/sur/ind/dmi.php)')
+
+    # imgurl = 'https://stateoftheocean.osmc.noaa.gov/sur/images/dmi_short.gif'
+    # st.image(imgurl)
+
+    # plot using altair
+    st.header('Full')
+    dfIOD = getIOD()
+    c = alt.Chart(dfIOD).mark_line().encode(
+        x='date:T',
+        y='IOD:Q',
+        tooltip=['date','IOD']
     )
     st.altair_chart(c,use_container_width=True)
