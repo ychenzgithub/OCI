@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 
-@st.cache
+#@st.cache
 def getONI():
     import pandas as pd
     import numpy as np
@@ -30,7 +30,7 @@ def getONI():
 
     return dfONI
 
-@st.cache
+#@st.cache
 def getAMO():
     ''' Read full AMO series
     Usage: AMOfull = get_AMOfull(local=None)
